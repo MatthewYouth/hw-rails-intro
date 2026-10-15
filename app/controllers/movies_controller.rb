@@ -16,7 +16,7 @@ class MoviesController < ApplicationController
     end
 
     # Only known column names may be passed to Active Record's order method.
-    requested_sort = params[:sort_by] || params[:sort] || session[:sort]
+    requested_sort = params[:sort] || session[:sort]
     @sort = %w[title release_date].include?(requested_sort) ? requested_sort : 'title'
 
     session[:ratings] = @selected_ratings
