@@ -38,12 +38,13 @@ gem "tzinfo-data", platforms: %i[ windows jruby ]
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
 
+# The default database.yml uses SQLite in development, test, and production.
+gem "sqlite3", ">= 1.4"
+
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 # gem "image_processing", "~> 1.2"
 
 group :development, :test do
-  gem "sqlite3", ">= 1.4"
-
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ]
 
@@ -63,7 +64,7 @@ group :development do
 end
 
 # These gems are used in production environments, such as Heroku
-# We do not want to use sqlite3 in production, so we use the pg gem instead
+# PostgreSQL is available when a deployment supplies a DATABASE_URL.
 # See https://devcenter.heroku.com/articles/getting-started-with-rails7#provision-a-database
 group :production do
   gem "pg"
