@@ -74,15 +74,32 @@ RSpec.describe "Movie list", type: :request do
     end
 
     it "keeps the active sort when the ratings form is submitted" do
-      get movies_path, params: { sort: "release_date", ratings: { "PG" => "1" } }
-      sort = page.at_css('#ratings_form input[name=sort]')["value"]
-      get movies_path, params: { sort: sort, ratings: { "R" => "1", "G" => "1" }, ratings_submitted: "1" }
+      get movies_path, params: { sort_by: "release_date", ratings: { "PG" => "1" } }
+      sort = page.at_css('#ratings_form input[name=sort_by]')["value"]
+      get movies_path, params: { sort_by: sort, ratings: { "R" => "1", "G" => "1" }, ratings_submitted: "1" }
       expect(column(:title)).to eq ["The Terminator", "Aladdin"]
       expect(header_classes(:release_date)).to match(/\bhilite\b/)
     end
   end
 
   describe "sorting" do
+    it "includes sort_by and the active ratings in each column header URL" do
+      get movies_path, params: { ratings: { "PG" => "1" } }
+      %w[title release_date].each do |name|
+        query = URI.parse(page.at_css("a##{name}_header")["href"]).query
+        settings = Rack::Utils.parse_nested_query(query)
+        expect(settings["sort_by"]).to eq name
+        expect(settings["ratings"]).to eq({ "PG" => "1" })
+        expect(settings).not_to have_key("sort")
+      end
+    end
+
+    it "honors sort_by from a directly opened URL" do
+      get movies_path, params: { sort_by: "release_date" }
+      expect(release_dates).to eq release_dates.sort
+      expect(header_classes(:release_date)).to match(/\bhilite\b/)
+    end
+
     it "sorts by title from the Movie Title header and highlights it" do
       get movies_path
       follow_header(:title)
@@ -104,7 +121,7 @@ RSpec.describe "Movie list", type: :request do
     end
 
     it "ignores unrecognized sort columns" do
-      get movies_path, params: { sort: "title DESC; DROP TABLE movies" }
+      get movies_path, params: { sort_by: "title DESC; DROP TABLE movies" }
       expect(response).to have_http_status(:success)
       expect(column(:title)).to eq column(:title).sort
       expect(Movie.count).to eq 5
