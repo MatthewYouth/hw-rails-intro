@@ -3,7 +3,25 @@ class MoviesController < ApplicationController
 
   # GET /movies or /movies.json
   def index
-    @movies = Movie.all
+    @all_ratings = Movie.all_ratings
+
+    # A submitted form with no checkboxes must be distinguished from a return
+    # visit, where the previous selection should be restored.
+    @selected_ratings = if params[:ratings].is_a?(ActionController::Parameters)
+      params[:ratings].keys & @all_ratings
+    elsif params[:ratings_submitted].present?
+      []
+    else
+      session[:ratings] || @all_ratings
+    end
+
+    # Only known column names may be passed to Active Record's order method.
+    requested_sort = params[:sort] || session[:sort]
+    @sort = %w[title release_date].include?(requested_sort) ? requested_sort : 'title'
+
+    session[:ratings] = @selected_ratings
+    session[:sort] = @sort
+    @movies = Movie.where(rating: @selected_ratings).order(@sort)
   end
 
   # GET /movies/1 or /movies/1.json
