@@ -61,6 +61,25 @@ RSpec.describe "Movie list", type: :request do
       expect(column(:rating)).to match_array %w[R PG PG]
       expect(checked_ratings).to match_array %w[PG R]
     end
+
+    it "shows no movies when every checkbox is unchecked, including after sorting" do
+      get movies_path, params: { ratings_submitted: "1" }
+      expect(column(:title)).to be_empty
+      expect(checked_ratings).to be_empty
+      follow_header(:release_date)
+      expect(column(:title)).to be_empty
+      get movies_path
+      expect(column(:title)).to be_empty
+      expect(checked_ratings).to be_empty
+    end
+
+    it "keeps the active sort when the ratings form is submitted" do
+      get movies_path, params: { sort: "release_date", ratings: { "PG" => "1" } }
+      sort = page.at_css('#ratings_form input[name=sort]')["value"]
+      get movies_path, params: { sort: sort, ratings: { "R" => "1", "G" => "1" }, ratings_submitted: "1" }
+      expect(column(:title)).to eq ["The Terminator", "Aladdin"]
+      expect(header_classes(:release_date)).to match(/\bhilite\b/)
+    end
   end
 
   describe "sorting" do
@@ -83,6 +102,13 @@ RSpec.describe "Movie list", type: :request do
       follow_header(:title)
       expect(column(:title)).to eq ["Raiders of the Lost Ark", "The Incredibles"]
     end
+
+    it "ignores unrecognized sort columns" do
+      get movies_path, params: { sort: "title DESC; DROP TABLE movies" }
+      expect(response).to have_http_status(:success)
+      expect(column(:title)).to eq column(:title).sort
+      expect(Movie.count).to eq 5
+    end
   end
 
   describe "remembering the settings" do
@@ -92,6 +118,14 @@ RSpec.describe "Movie list", type: :request do
       get movies_path
       expect(column(:title)).to eq ["Raiders of the Lost Ark", "Aladdin", "The Incredibles"]
       expect(checked_ratings).to match_array %w[G PG]
+    end
+
+    it "allows an explicit new selection to replace the remembered filter" do
+      get movies_path, params: { ratings: { "PG" => "1" } }
+      get movies_path, params: { ratings: { "G" => "1" } }
+      get movies_path
+      expect(column(:title)).to eq ["Aladdin"]
+      expect(checked_ratings).to eq ["G"]
     end
   end
 end
